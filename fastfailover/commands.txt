@@ -1,0 +1,83 @@
+set_switch s1 s2 s3 s4
+table_set_default failover_msg update_flow_path
+mc_mgrp_create 1
+table_set_default flood_failover_msg multicast 1
+#http://mail.p4.org/pipermail/p4-dev_p4.org/2015-November/000284.html
+
+table_set_default ipv4_lookup _drop
+table_add ipv4_lookup set_path_id 10.0.0.1/32 => 1
+table_add ipv4_lookup set_path_id 10.0.0.2/32 => 2
+
+# the path ID of flow 1 is 1
+# and path 1 is NOT unused while path 2 is unused.
+register_write path_version_register 1 1
+register_write unused_path_version_register 1 0
+register_write unused_path_version_register 2 1
+
+register_write path_version_register 2 3
+register_write unused_path_version_register 3 0
+register_write unused_path_version_register 4 1
+
+table_set_default ipv4_fwd _drop
+
+
+set_switch s1
+table_add ipv4_fwd forward 1 => 1
+table_add ipv4_fwd forward 2 => 1
+table_add ipv4_fwd forward 3 => 2
+table_add ipv4_fwd forward 4 => 3
+mc_node_create 0 1
+mc_node_create 1 2
+mc_node_create 2 3
+mc_node_associate 1 0
+mc_node_associate 1 1
+mc_node_associate 1 2
+
+set_switch s2
+table_add ipv4_fwd forward 1 => 2
+table_add ipv4_fwd forward 2 => 3
+table_add ipv4_fwd forward 3 => 1
+table_add ipv4_fwd forward 4 => 1
+mc_node_create 0 1
+mc_node_create 1 2
+mc_node_create 2 3
+mc_node_associate 1 0
+mc_node_associate 1 1
+mc_node_associate 1 2
+
+
+set_switch s3
+table_add ipv4_fwd forward 1 => 1
+table_add ipv4_fwd forward 2 => 2
+table_add ipv4_fwd forward 3 => 2
+table_add ipv4_fwd forward 4 => 1
+mc_node_create 0 1
+mc_node_create 1 2
+mc_node_associate 1 0
+mc_node_associate 1 1
+
+
+set_switch s4
+table_add ipv4_fwd forward 1 => 2
+table_add ipv4_fwd forward 2 => 1
+table_add ipv4_fwd forward 3 => 1
+table_add ipv4_fwd forward 4 => 2
+mc_node_create 0 1
+mc_node_create 1 2
+mc_node_associate 1 0
+mc_node_associate 1 1
+
+
+# # About links:
+# h1:0 <----> s1:1
+# h2:0 <----> s2:1
+# s1:1 <----> h1:0
+# s1:2 <----> s3:1
+# s1:3 <----> s4:1
+# s2:1 <----> h2:0
+# s2:2 <----> s3:2
+# s2:3 <----> s4:2
+# s3:1 <----> s1:2
+# s3:2 <----> s2:2
+# s4:1 <----> s1:3
+# s4:2 <----> s2:3

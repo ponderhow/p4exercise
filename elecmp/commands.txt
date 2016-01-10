@@ -1,0 +1,83 @@
+
+# set default action for each table
+set_switch s1 s2 s3 s4 s5 s6
+
+table_set_default default_ecmp_group _nop
+table_set_default fix_elenhop fix_ecmp_elenhop_id
+table_set_default robin_ele_hash _nop
+table_set_default normal_ecmp_hash _nop
+table_set_default ecmp_nhop _nop
+
+table_set_default edge_check _nop
+table_set_default elepath_feedback send_picked_elenhop_back
+
+table_set_default default_route _drop
+
+
+# set edge_check
+set_switch s1
+table_add edge_check set_edge_flag 10.0.0.1/32
+
+set_switch s2
+table_add edge_check set_edge_flag 10.0.0.2/32
+
+
+# set default routes
+set_switch s1
+table_add default_route set_nhop 10.0.0.1/32 => 1
+table_add default_route set_nhop 10.0.0.2/32 => 2
+
+set_switch s2
+table_add default_route set_nhop 10.0.0.1/32 => 2
+table_add default_route set_nhop 10.0.0.2/32 => 1
+
+set_switch s3
+table_add default_route set_nhop 10.0.0.1/32 => 1
+table_add default_route set_nhop 10.0.0.2/32 => 2
+
+
+# set default_ecmp_group
+set_switch s1
+table_add default_ecmp_group set_ecmp_grp_id 10.0.0.2/32 => 2
+#table_add fix_elenhop set_ecmp_grp_id 10.0.0.2/32 => 2
+
+set_switch s2
+table_add default_ecmp_group set_ecmp_grp_id 10.0.0.1/32 => 1
+
+set_switch s3 s4 s5 s6
+table_add default_ecmp_group set_ecmp_grp_id 10.0.0.1/32 => 1
+table_add default_ecmp_group set_ecmp_grp_id 10.0.0.2/32 => 2
+
+
+#table_set_default forward _drop
+#table_set_default send_frame _drop
+#table_set_default flowlet lookup_flowlet_map
+#table_set_default new_flowlet update_flowlet_id
+#table_add ecmp_group set_ecmp_select 10.0.0.1/32 => 0 2
+#table_add ecmp_nhop set_nhop 0 => 10.0.1.1 1
+#table_add ecmp_nhop set_nhop 1 => 10.0.2.1 2
+#table_add forward set_dmac 10.0.1.1 => 00:04:00:00:00:00
+#table_add forward set_dmac 10.0.2.1 => 00:04:00:00:00:01
+#table_add send_frame rewrite_mac 1 => 00:aa:bb:00:00:00
+#table_add send_frame rewrite_mac 2 => 00:aa:bb:00:00:01
+
+#
+# About links:
+# h1:0 <----> s1:1
+# h2:0 <----> s2:1
+# s1:1 <----> h1:0
+# s1:2 <----> s3:1
+# s1:3 <----> s4:1
+# s2:1 <----> h2:0
+# s2:2 <----> s3:2
+# s2:3 <----> s5:1
+# s2:4 <----> s6:1
+# s3:1 <----> s1:2
+# s3:2 <----> s2:2
+# s4:1 <----> s1:3
+# s4:2 <----> s5:2
+# s4:3 <----> s6:2
+# s5:1 <----> s2:3
+# s5:2 <----> s4:2
+# s6:1 <----> s2:4
+# s6:2 <----> s4:3
