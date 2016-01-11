@@ -55,6 +55,35 @@ header_type tcp_t {
     }
 }
 
+field_list tcp_checksum_list {
+        ipv4.srcAddr;
+        ipv4.dstAddr;
+        8'0;
+        ipv4.protocol;
+        ipv4.totalLen;
+        tcp.srcPort;
+        tcp.dstPort;
+        tcp.seqNo;
+        tcp.ackNo;
+        tcp.dataOffset;
+        tcp.res;
+        tcp.ecn;
+        tcp.ctrl;
+        tcp.window;
+        tcp.urgentPtr;
+        payload;
+}
+field_list_calculation tcp_checksum {
+    input {
+        tcp_checksum_list;
+    }
+    algorithm : csum16;
+    output_width : 16;
+}
+calculated_field tcp.checksum {
+    update tcp_checksum if(valid(tcp));
+}
+
 header_type udp_t {
     fields {
         srcPort : 16;
@@ -64,11 +93,18 @@ header_type udp_t {
     }
 }
 
-# define ECMP_NHOP_ID_BIT_WIDTH 8
+#define ECMP_NHOP_COUNT_BIT_WIDTH 8
+#define ECMP_NHOP_ID_BIT_WIDTH 8
+
+header_type elenhop_counter_t {
+    fields {
+        val : ECMP_NHOP_COUNT_BIT_WIDTH;
+    }
+}
 
 header_type elenhop_header_t {
     fields {
-        ecmp_nhop_id: ECMP_NHOP_ID_BIT_WIDTH;
+        ecmp_nhop_id : ECMP_NHOP_ID_BIT_WIDTH;
     }
 }
 

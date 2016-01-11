@@ -62,12 +62,14 @@ calculated_field ipv4.hdrChecksum  {
 }
 
 
-#define IP_PROTOCOLS_TCP 6
+#define IP_PROTOCOLS_TCP    0x06
+#define IP_PROTOCOLS_UDP    0x11
 
 parser parse_ipv4 {
     extract(ipv4);
     return select(latest.protocol) {
         IP_PROTOCOLS_TCP : parse_tcp;
+        IP_PROTOCOLS_UDP : parse_udp;
         default: ingress;
     }
 }
@@ -78,10 +80,25 @@ header tcp_t tcp;
 //
 #define ELEPATH_SETUP 1
 #define EXPLICIT_ELENHOP 2
+#define TCP_RES_NONE 7
+#define FEEDBACK_PORT_NUM 4
+#define UNUSED_PORT_NUM 1
 
 parser parse_tcp {
     extract(tcp);
+    //set_metadata(ingress_metadata.ecmp_flag, 1);
     return select(latest.res) {
+        EXPLICIT_ELENHOP : parse_ele_nhop_num;
+        ELEPATH_SETUP : parse_ele_nhop_num;
+        default: ingress;
+    }
+}
+
+header elenhop_counter_t elenhop_counter;
+
+parser parse_ele_nhop_num {
+    extract(elenhop_counter);
+    return select(tcp.res) {
         EXPLICIT_ELENHOP : parse_ele_nhop;
         default: ingress;
     }
@@ -95,6 +112,22 @@ parser parse_ele_nhop {
 }
 
 header udp_t udp;
+
+parser parse_udp {
+    extract(udp);
+    return select(latest.dstPort) {
+        UNUSED_PORT_NUM : parse_flow_fingerprint; // trick desgin
+        // The P4 program should/MUST be capable of parsing every packet it can produce
+        // http://mail.p4.org/pipermail/p4-dev_p4.org/2015-December/000385.html
+        default: ingress;
+    }
+}
+
 header flow_fingerprint_t flow_fingerprint;
 
-@pragma header_ordering ethernet ipv4 udp tcp flow_fingerprint elenhop_header
+parser parse_flow_fingerprint {
+    extract(flow_fingerprint);
+    return ingress;
+}
+
+//@pragma header_ordering ethernet ipv4 udp flow_fingerprint tcp elenhop_counter elenhop_header
